@@ -11,16 +11,30 @@ use Illuminate\Http\RedirectResponse;
 class ProjectController extends Controller
 {
     /**
-     * Store a newly created project.
+     * Store a newly created project and start a session.
      */
     public function store(StoreProjectRequest $request): RedirectResponse
     {
         /** @var User $user */
         $user = $request->user();
 
+        // Stop any currently active session first
+        $activeSession = $user->activeSession;
+        if ($activeSession) {
+            $activeSession->stop();
+        }
+
+        // Create the project
         $project = $user->projects()->create($request->validated());
 
-        return redirect()->back()->with('success', "Project '{$project->name}' created.");
+        // Start a session for the new project
+        $session = $user->sessions()->create([
+            'project_id' => $project->id,
+            'started_at' => now(),
+        ]);
+
+        // Redirect to Focus Mode
+        return redirect()->route('session.show', $session);
     }
 
     /**

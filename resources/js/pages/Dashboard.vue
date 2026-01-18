@@ -3,8 +3,10 @@ import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { Clock, Play, TrendingUp, Calendar, Folder, Pencil, Archive, ArchiveRestore, MoreHorizontal } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
+import AccentColorPicker from '@/components/AccentColorPicker.vue';
 import BarChart from '@/components/charts/BarChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
+import { useAccentColor } from '@/composables/useAccentColor';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -88,12 +90,8 @@ const newProjectForm = useForm({
 });
 
 const handleCreateProject = () => {
-    newProjectForm.post(storeProject().url, {
-        onSuccess: () => {
-            showNewProjectModal.value = false;
-            newProjectForm.reset();
-        },
-    });
+    // Server will create project, start session, and redirect to Focus Mode
+    newProjectForm.post(storeProject().url);
 };
 
 // Edit project
@@ -128,11 +126,14 @@ const handleArchiveProject = (project: Project) => {
     router.post(archiveProject(project.id).url);
 };
 
-// Chart data
+// Accent color
+const { accentColor } = useAccentColor();
+
+// Chart data - add opacity to bar colors (70% opacity = B3 in hex)
 const barChartData = computed(() => ({
     labels: props.projectBreakdown.map((p) => p.name),
     data: props.projectBreakdown.map((p) => p.total_seconds / 3600),
-    colors: props.projectBreakdown.map((p) => p.color),
+    colors: props.projectBreakdown.map((p) => `${p.color}B3`),
 }));
 
 const lineChartData = computed(() => ({
@@ -154,10 +155,14 @@ const handleRangeChange = (value: string) => {
         <header class="border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-sm">
             <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
                 <div class="flex items-center gap-3">
-                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20">
-                        <Clock class="h-4 w-4 text-indigo-400" />
+                    <div
+                        class="flex h-8 w-8 items-center justify-center rounded-lg"
+                        :style="{ backgroundColor: `${accentColor}33` }"
+                    >
+                        <Clock class="h-4 w-4" :style="{ color: accentColor }" />
                     </div>
                     <span class="text-lg font-semibold tracking-tight">Time Tracker</span>
+                    <AccentColorPicker :colors="colors" />
                 </div>
 
                 <!-- Active session indicator or Start button -->
@@ -201,7 +206,11 @@ const handleRangeChange = (value: string) => {
                             <Button
                                 :disabled="!selectedProjectId || startForm.processing"
                                 @click="handleStartSession"
-                                class="gap-2 bg-indigo-600 hover:bg-indigo-500"
+                                class="gap-2 text-white"
+                                :style="{
+                                    backgroundColor: accentColor,
+                                    '--tw-ring-color': accentColor,
+                                }"
                             >
                                 <Play class="h-4 w-4" />
                                 Start
@@ -307,7 +316,8 @@ const handleRangeChange = (value: string) => {
                                     <Button
                                         type="submit"
                                         :disabled="!newProjectForm.name || newProjectForm.processing"
-                                        class="bg-indigo-600 hover:bg-indigo-500"
+                                        class="text-white"
+                                        :style="{ backgroundColor: accentColor }"
                                     >
                                         Create Project
                                     </Button>
@@ -373,6 +383,7 @@ const handleRangeChange = (value: string) => {
                             <LineChart
                                 :labels="lineChartData.labels"
                                 :data="lineChartData.data"
+                                :color="accentColor"
                             />
                         </div>
                     </CardContent>
@@ -533,7 +544,8 @@ const handleRangeChange = (value: string) => {
                         <Button
                             type="submit"
                             :disabled="!editProjectForm.name || editProjectForm.processing"
-                            class="bg-indigo-600 hover:bg-indigo-500"
+                            class="text-white"
+                            :style="{ backgroundColor: accentColor }"
                         >
                             Save Changes
                         </Button>
